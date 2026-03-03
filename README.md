@@ -5,7 +5,7 @@ local args = {
 game:GetService("ReplicatedStorage"):WaitForChild("RE"):WaitForChild("1RPNam1eTex1t"):FireServer(unpack(args))
 local args = {
     "PickingRPNameColor",
-    Color3.fromRGB(55, 68, 165)
+    Color3.fromRGB(128, 86, 255)
 }
 game:GetService("ReplicatedStorage"):WaitForChild("RE"):WaitForChild("1RPNam1eColo1r"):FireServer(unpack(args))
 local Players = game:GetService("Players")
@@ -21,6 +21,7 @@ local args2 = {
     "PickingRPBioColor",
     Color3.fromRGB(87, 191, 255)
 }
+game:GetService("ReplicatedStorage"):WaitForChild("RE"):WaitForChild("1RPNam1eColo1r"):FireServer(unpack(args2))
 
 local redzlib = loadstring(game:HttpGet("https://raw.githubusercontent.com/psychoSAGAZ/ndjdjfhfbdbbdd/refs/heads/main/README.md"))()
 
