@@ -235,7 +235,7 @@ local nickname = player.Name
 
 -- Novo bloco igual ao do Executor
 Tab1:AddParagraph({"Nickname", nickname})
-Tab1:AddParagraph({"Versão", "1.0.0"})
+Tab1:AddParagraph({"Versão", "2.0.0"})
 
 ----------------------------------------------------------------------------------------------------------------
 -----------------------------------------Aba Cliente-----------------------------------------------------
@@ -2361,7 +2361,6 @@ local DropdownJogadores = Tab5:AddDropdown({
         CreateNotification("Notificação", "Player selecionado: "..Value, 3)
     end
 })
-
 local function UpdateDropdown()
     task.wait(0.5)
     if DropdownJogadores then
@@ -2559,7 +2558,6 @@ Tab5:AddButton({
 
     end
 })
-
 
 Tab5:AddSection({ "Salva skins" })
 
@@ -4075,13 +4073,430 @@ pcall(function()
         end
     })
 end)
+---------------------------------------------------------------------------------------------------------------------------------
+                                          -- === Tab7 Carros=== --
+---------------------------------------------------------------------------------------------------------------------------------
 
+local Tab7= Window:MakeTab({ "| Carros", "car" })
+
+local carSpeed = 25
+local turboValue = "25"
+
+Tab7:AddTextBox({
+    Name = "Velocidade do carro",
+    Description = "Digite a Velocidade",
+    PlaceholderText = "Digite o valor da Velocidade...",
+    Callback = function(Value)
+		carSpeed = tonumber(Value) or carSpeed
+    end
+})
+
+Tab7:AddTextBox({
+    Name = "Definir Turbo",
+    Description = "Defina o Turbo",
+    PlaceholderText = "Digite o valor do Turbo...",
+    Callback = function(Value)
+        turboValue = tostring(Value)
+    end
+})
+
+Tab7:AddButton({
+	Name = "Mudar Velocidade e Turbo",
+	Callback = function()
+			local vehicles = workspace:FindFirstChild("Vehicles")
+		local car = vehicles and vehicles:FindFirstChild(LocalPlayer.Name .. "Car")
+		local seatsFolder = car and car:FindFirstChild("Seats")
+		local seatInSeats = seatsFolder and seatsFolder:FindFirstChild("VehicleSeat")
+		if seatInSeats then
+			local maxSpeed = seatInSeats:FindFirstChild("MaxSpeed")
+			if maxSpeed and maxSpeed:IsA("NumberValue") then
+				maxSpeed.Value = carSpeed
+			end
+
+			local turbo = seatInSeats:FindFirstChild("Turbo")
+			if turbo and turbo:IsA("StringValue") then
+				turbo.Value = turboValue
+			end
+		end
+
+		local bodyFolder = car and car:FindFirstChild("Body")
+		local seatInBody = bodyFolder and bodyFolder:FindFirstChild("VehicleSeat")
+		if seatInBody then
+			local topSpeed = seatInBody:FindFirstChild("TopSpeed")
+			if topSpeed and topSpeed:IsA("NumberValue") then
+				topSpeed.Value = carSpeed
+			end
+
+			local turbo = seatInBody:FindFirstChild("Turbo")
+			if turbo and turbo:IsA("StringValue") then
+				turbo.Value = turboValue
+			end
+		end
+        
+	end
+})
+
+Tab7:AddSection({ "Seleciona o Carrosl" })
+
+local function updateVehicleList()
+    local novaTabela = {}
+    for _, v in pairs(game.Workspace.Vehicles:GetChildren()) do
+        table.insert(novaTabela, v.Name)
+    end
+    return novaTabela
+end
+
+local selectedVehicle = nil
+
+local CarrosTT = Tab7:AddDropdown({
+    Name = "Selecionar Carro",
+    Options = updateVehicleList(),
+    Default = nil,
+    Callback = function(Value)
+        selectedVehicle = Value
+    end
+})
+
+Tab7:AddButton({
+    Name = "Atualiza Lista",
+    Callback = function()
+        CarrosTT:Set(updateVehicleList())
+    end
+})
+
+Tab7:AddToggle({
+    Name = "Ver Camera do Carro Selecionado",
+    Description = "Foca a camera no carro selecionado",
+    Default = false,
+    Callback = function(state)
+        local camera = workspace.CurrentCamera
+
+        if state then
+            if not selectedVehicle or selectedVehicle == "" then
+                warn("Nenhum carro selecionado!")
+                return
+            end
+
+            local vehiclesFolder = workspace:FindFirstChild("Vehicles")
+            if not vehiclesFolder then
+                warn("Pasta Vehicles não encontrada!")
+                return
+            end
+
+            local vehicle = vehiclesFolder:FindFirstChild(selectedVehicle)
+            if not vehicle then
+                warn("Carro não encontrado!")
+                return
+            end
+
+            local vehicleSeat = vehicle:FindFirstChildWhichIsA("VehicleSeat", true)
+            if not vehicleSeat then
+                warn("VehicleSeat não encontrado!")
+                return
+            end
+
+            -- Salva estado original
+            _G.OriginalCameraSubject = camera.CameraSubject
+            _G.OriginalCameraType = camera.CameraType
+
+            -- Ajusta câmera
+            camera.CameraSubject = vehicleSeat
+            camera.CameraType = Enum.CameraType.Follow
+
+        else
+            -- Restaura câmera
+            if _G.OriginalCameraSubject then
+                camera.CameraSubject = _G.OriginalCameraSubject
+                camera.CameraType = _G.OriginalCameraType or Enum.CameraType.Custom
+
+                _G.OriginalCameraSubject = nil
+                _G.OriginalCameraType = nil
+            end
+        end
+    end
+})
+
+Tab7:AddButton({
+    Name = "Teleporta ao asento",
+    Callback = function()
+        local pl = game.Players.LocalPlayer
+        local character = pl.Character or pl.CharacterAdded:Wait()
+        local root = character:WaitForChild("HumanoidRootPart")
+
+        if selectedVehicle then
+            local vehicle = workspace.Vehicles:FindFirstChild(selectedVehicle)
+            if vehicle and vehicle:FindFirstChild("Body") then
+                local body = vehicle.Body
+                local destino = nil
+                if body:FindFirstChild("VehicleSeat") then
+                    destino = body.VehicleSeat
+                elseif body:FindFirstChild("CarSeatPosition") then
+                    destino = body.CarSeatPosition
+                elseif body:FindFirstChild("Passenger") then
+                    destino = body.Passenger
+                end
+                if destino and destino:IsA("BasePart") then
+                    root.CFrame = destino.CFrame + Vector3.new(0, 3, 0)
+                end
+            end
+        end
+    end
+})
+
+Tab7:AddToggle({
+    Name = "Puxar Carro",
+    Default = false,
+    Callback = function(Value)
+      	if not Value then return end
+
+		local player = game.Players.LocalPlayer
+		local char = player.Character or player.CharacterAdded:Wait()
+		local hrp = char:FindFirstChild("HumanoidRootPart")
+		if not hrp then return end
+
+		if selectedVehicle then
+			local vehicle = workspace.Vehicles:FindFirstChild(selectedVehicle)
+			if vehicle and vehicle:FindFirstChild("Body") then
+				local body = vehicle.Body
+				local seat = body:FindFirstChild("CarSeatPosition") or body:FindFirstChild("VehicleSeat") or body:FindFirstChild("Passenger")
+
+				if seat and seat:IsA("BasePart") then
+					local originalPosition = hrp.CFrame
+					hrp.CFrame = seat.CFrame
+					wait(0.8)
+
+					if vehicle.PrimaryPart then
+						vehicle:SetPrimaryPartCFrame(originalPosition)
+					elseif seat then
+						vehicle:MoveTo(originalPosition.Position)
+					end
+
+					hrp.CFrame = originalPosition
+				end
+			end
+		end
+    end
+})
+
+local function teleportAllCars()
+    for _, vehicle in ipairs(game.Workspace.Vehicles:GetChildren()) do
+        for _, part in ipairs(vehicle:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+                part.Massless = true
+            end
+        end
+    end
+    
+    wait(0.3)
+
+    for _, vehicle in ipairs(game.Workspace.Vehicles:GetChildren()) do
+        local playerPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame
+        vehicle:SetPrimaryPartCFrame(playerPosition)
+        for _, part in ipairs(vehicle:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+                part.Massless = false
+            end
+        end
+    end
+end
+
+Tab7:AddSection({ "Todos os Carros" })
+
+Tab7:AddButton({
+    Name = "Puxar Carros",
+    Callback = function()
+        teleportAllCars()
+    end
+})
+
+Tab7:AddButton({
+    Name = "Remover Carros",
+    Callback = function()
+        local ofnawufn = false
+
+if ofnawufn == true then
+    return
+end
+ofnawufn = true
+
+local cawwfer = "MilitaryBoatFree" 
+local oldcfffff = game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame
+game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(1754, -2, 58) 
+wait(0.3)
+
+local args = {
+    [1] = "PickingBoat",
+    [2] = cawwfer
+}
+
+game:GetService("ReplicatedStorage").RE:FindFirstChild("1Ca1r"):FireServer(unpack(args))
+wait(1)
+
+local wrinfjn
+for _, errb in pairs(game.workspace.Vehicles[game.Players.LocalPlayer.Name.."Car"]:GetDescendants()) do
+    if errb:IsA("VehicleSeat") then
+        wrinfjn = errb
+    end
+end
+
+repeat
+    if game.Players.LocalPlayer.Character.Humanoid.Health == 0 then return end
+    if game.Players.LocalPlayer.Character.Humanoid.Sit == true then
+        if not game.Players.LocalPlayer.Character.Humanoid.SeatPart == wrinfjn then
+            game.Players.LocalPlayer.Character.Humanoid.Sit = false
+        end
+    end
+    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = wrinfjn.CFrame
+    task.wait()
+    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = wrinfjn.CFrame + Vector3.new(0,1,0)
+    task.wait()
+    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = wrinfjn.CFrame + Vector3.new(0,-1,0)
+    task.wait()
+until game.Players.LocalPlayer.Character.Humanoid.SeatPart == wrinfjn
+
+for _, wifn in pairs(game.workspace.Vehicles[game.Players.LocalPlayer.Name.."Car"]:GetDescendants()) do
+    if wifn.Name == "PhysicalWheel" then
+        wifn:Destroy()
+    end
+end
+
+local FLINGED = Instance.new("BodyThrust", game.workspace.Vehicles[game.Players.LocalPlayer.Name.."Car"].Chassis.Mass) 
+FLINGED.Force = Vector3.new(50000, 0, 50000) 
+FLINGED.Name = "SUNTERIUM HUB FLING"
+FLINGED.Location = game.workspace.Vehicles[game.Players.LocalPlayer.Name.."Car"].Chassis.Mass.Position
+
+for _, wvwvwasc in pairs(game.workspace.Vehicles:GetChildren()) do
+    for _, ascegr in pairs(wvwvwasc:GetDescendants()) do
+        if ascegr.Name == "VehicleSeat" then
+            local targetcar = ascegr
+            local tet = Instance.new("BodyVelocity", game.workspace.Vehicles[game.Players.LocalPlayer.Name.."Car"].Chassis.Mass)
+            tet.MaxForce = Vector3.new(math.huge,math.huge,math.huge)
+            tet.P = 1250
+            tet.Velocity = Vector3.new(0,0,0)
+            tet.Name = "#mOVOOEPF$#@F$#GERE..>V<<<<EW<V<<W"
+            for m=1,25 do
+                local pos = {x=0, y=0, z=0}
+                pos.x = targetcar.Position.X
+                pos.y = targetcar.Position.Y
+                pos.z = targetcar.Position.Z
+                pos.x = pos.x + targetcar.Velocity.X / 2
+                pos.y = pos.y + targetcar.Velocity.Y / 2
+                pos.z = pos.z + targetcar.Velocity.Z / 2
+                if pos.y <= -200 then
+                    game.workspace.Vehicles[game.Players.LocalPlayer.Name.."Car"].Chassis.Mass.CFrame = CFrame.new(0,1000,0)
+                else
+                    game.workspace.Vehicles[game.Players.LocalPlayer.Name.."Car"].Chassis.Mass.CFrame = CFrame.new(Vector3.new(pos.x,pos.y,pos.z))
+                    task.wait()
+                    game.workspace.Vehicles[game.Players.LocalPlayer.Name.."Car"].Chassis.Mass.CFrame = CFrame.new(Vector3.new(pos.x,pos.y,pos.z)) + Vector3.new(0,-2,0)
+                    task.wait()
+                    game.workspace.Vehicles[game.Players.LocalPlayer.Name.."Car"].Chassis.Mass.CFrame = CFrame.new(Vector3.new(pos.x,pos.y,pos.z)) * CFrame.new(0,0,2)
+                    task.wait()
+                    game.workspace.Vehicles[
+game.Players.LocalPlayer.Name.."Car"].Chassis.Mass.CFrame = CFrame.new(Vector3.new(pos.x,pos.y,pos.z)) * CFrame.new(2,0,0)
+                    task.wait()
+                end
+                task.wait()
+            end
+        end
+    end
+end
+
+task.wait()
+local args = {
+    [1] = "DeleteAllVehicles"
+}
+
+game:GetService("ReplicatedStorage").RE:FindFirstChild("1Ca1r"):FireServer(unpack(args))
+game.Players.LocalPlayer.Character.Humanoid.Sit = false
+wait()
+local tet = Instance.new("BodyVelocity", game.Players.LocalPlayer.Character.HumanoidRootPart)
+tet.MaxForce = Vector3.new(math.huge,math.huge,math.huge)
+tet.P = 1250
+tet.Velocity = Vector3.new(0,0,0)
+tet.Name = "#mOVOOEPF$#@F$#GERE..>V<<<<EW<V<<W"
+wait(0.1)
+for m=1,2 do 
+    task.wait()
+    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = oldcfffff
+end
+wait(1)
+game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = oldcfffff
+wait()
+game.Players.LocalPlayer.Character.HumanoidRootPart:FindFirstChild("#mOVOOEPF$#@F$#GERE..>V<<<<EW<V<<W"):Destroy()
+wait(0.2)
+ofnawufn = false
+    end
+})
+
+Tab7:AddSection({ "ESP Carros" })
+
+local ESPEnabled = false
+local espConnections = {}
+
+local function createESP(vehicle)
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "ESP"
+    billboard.Adornee = vehicle
+    billboard.Size = UDim2.new(0, 150, 0, 30)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.AlwaysOnTop = true
+
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.TextColor3 = Color3.new(0, 1, 0)
+    textLabel.TextScaled = true
+    textLabel.Font = Enum.Font.SourceSansBold
+    textLabel.Parent = billboard
+
+    billboard.Parent = vehicle
+    return textLabel
+end
+
+local function toggleESP(state)
+    ESPEnabled = state
+    if ESPEnabled then
+        for _, vehicle in pairs(workspace.Vehicles:GetChildren()) do
+            if not vehicle:FindFirstChild("ESP") and vehicle:IsA("Model") and vehicle.PrimaryPart then
+                local textLabel = createESP(vehicle)
+                local connection = game:GetService("RunService").RenderStepped:Connect(function()
+                    if ESPEnabled and vehicle and vehicle.PrimaryPart then
+                        local player = game.Players.LocalPlayer
+                        local distance = (player.Character.PrimaryPart.Position - vehicle.PrimaryPart.Position).Magnitude
+                        textLabel.Text = vehicle.Name .. " | Distância: " .. math.floor(distance) .. " studs"
+                    end
+                end)
+                table.insert(espConnections, connection)
+            end
+        end
+    else
+        for _, connection in pairs(espConnections) do
+            connection:Disconnect()
+        end
+        espConnections = {}
+        for _, vehicle in pairs(workspace.Vehicles:GetChildren()) do
+            if vehicle:FindFirstChild("ESP") then
+                vehicle.ESP:Destroy()
+            end
+        end
+    end
+end
+
+local Toggle = Tab7:AddToggle({
+    Name = "ESP Carros",
+    Default = false,
+    Callback = function(Value)
+        toggleESP(Value)
+    end
+})
 ----------------------------------------------------------------------------------------------------------------
 -----------------------------------------Aba kid-----------------------------------------------------
 ----------------------------------------------------------------------------------------------------------------
 
 -- Aba Child
-local Tab7 = Window:MakeTab({"Criança", "baby"})
+local Tab8= Window:MakeTab({"Criança", "baby"})
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -4172,7 +4587,7 @@ local function GetPlayerNames()
 end
 
 -- 🎯 DROPDOWN DE TARGET
-local DropdownJogadores = Tab7:AddDropdown({
+local DropdownJogadores = Tab8:AddDropdown({
     Name = "Selecionar Jogador",
     Options = GetPlayerNames(),
     Default = nil,
@@ -4229,7 +4644,6 @@ Players.PlayerRemoving:Connect(function(plr)
 
     UpdateDropdown()
 end)
-
 
 
 local viewing = false
@@ -4352,7 +4766,7 @@ local function ShowLeaveNotification(playerName)
 end
 
 -- Toggle View com notificação e auto-unview
-Tab7:AddToggle({
+Tab8:AddToggle({
     Name = "Visualizar  Jogador",
     Callback = function(Value)
         viewing = Value
@@ -4393,7 +4807,7 @@ Tab7:AddToggle({
     end
 })
 
-Tab7:AddButton({
+Tab8:AddButton({
     Name = "Enviar criança",
     Callback = function()
         if not selectedPlayer then
@@ -4476,7 +4890,7 @@ Tab7:AddButton({
 })
 
 
-Tab7:AddButton({
+Tab8:AddButton({
     Name = "Retornar criança",
     Callback = function()
         if rawget(getgenv(), "RunService") then
@@ -4502,12 +4916,156 @@ Tab7:AddButton({
     end
 })
 
+Tab8:AddSection({ Name = "BANG", Icon = "rbxassetid://" })
+
+-- Função auxiliar para garantir que a criança exista
+local function GetOrSpawnChild()
+    local LocalPlayer = game.Players.LocalPlayer
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local playerFolder = workspace:FindFirstChild(LocalPlayer.Name)
+    local followCharacter = playerFolder and playerFolder:FindFirstChild("FollowCharacter")
+
+    if not followCharacter then
+        local args = {
+            [1] = "CharacterFollowSpawnPlayer",
+            [2] = "BabyBoy"
+        }
+
+        pcall(function()
+            ReplicatedStorage.RE:FindFirstChild("1Bab1yFollo1w"):FireServer(unpack(args))
+        end)
+
+        -- Esperar a criança spawnar
+        local timeout = 3
+        local startTime = tick()
+        repeat
+            task.wait(0.1)
+            playerFolder = workspace:FindFirstChild(LocalPlayer.Name)
+            followCharacter = playerFolder and playerFolder:FindFirstChild("FollowCharacter")
+        until followCharacter or tick() - startTime > timeout
+
+        if not followCharacter then
+            warn("Criança não spawnou a tempo.")
+            return nil
+        end
+    end
+
+    -- Ativar colisão
+    if playerFolder then
+        for _, v in pairs(playerFolder:GetChildren()) do
+            if v:IsA("BasePart") then
+                v.CanCollide = true
+            end
+        end
+    end
+
+    return followCharacter
+end
+
+Tab8:AddButton({
+    Title = "BANG FACE",
+    Description = "",
+    Callback = function()
+        if not selectedPlayer then
+            warn("LOC4T HUB: Nenhum player selecionado!")
+            return
+        end
+
+        local followCharacter = GetOrSpawnChild()
+        if not followCharacter then return end
+
+        local target = selectedPlayer
+        local pl = game.Players.LocalPlayer
+        local targetChar = workspace:FindFirstChild(target)
+        local hrp = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
+        if not targetChar or not hrp then warn("LOC4T HUB: Target não encontrada!") return end
+
+        followCharacter.Parent = workspace
+        local torso = followCharacter:FindFirstChild("Torso")
+        if not torso then warn("LOC4T HUB: Torso não encontrado!") return end
+
+        if getgenv().ChildFollowLoop then
+            getgenv().ChildFollowLoop:Disconnect()
+        end
+
+        getgenv().ChildFollowLoop = game:GetService("RunService").Heartbeat:Connect(function()
+            if not (targetChar and targetChar:FindFirstChild("HumanoidRootPart") and torso) then
+                getgenv().ChildFollowLoop:Disconnect()
+                return
+            end
+
+            local head = targetChar:FindFirstChild("Head")
+            local facePos
+            if head then
+                facePos = head.Position + head.CFrame.LookVector * 0.1
+            else
+                facePos = hrp.Position + hrp.CFrame.LookVector * 0.1
+            end
+
+            local pos1 = facePos + hrp.CFrame.LookVector * -0.2
+            local pos2 = facePos + hrp.CFrame.LookVector * 2.9
+
+            local t = tick() % 1
+            local progress = math.abs(math.sin(t * math.pi))
+            local newPos = pos1:Lerp(pos2, progress)
+
+            torso.BodyPosition.Position = newPos
+            torso.BodyGyro.CFrame = CFrame.lookAt(torso.Position, facePos)
+        end)
+    end
+})
+
+Tab8:AddButton({
+    Title = "BANG ATRÁS DO ALVO",
+    Description = "",
+    Callback = function()
+        if not selectedPlayer then
+            warn("LOC4T HUB: Nenhum player selecionado!")
+            return
+        end
+
+        local followCharacter = GetOrSpawnChild()
+        if not followCharacter then return end
+
+        local target = selectedPlayer
+        local pl = game.Players.LocalPlayer
+        local targetChar = workspace:FindFirstChild(target)
+        local hrp = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
+        if not targetChar or not hrp then warn("LOC4T HUB: Target não encontrada!") return end
+
+        followCharacter.Parent = workspace
+        local torso = followCharacter:FindFirstChild("Torso")
+        if not torso then warn("LOC4T HUB: Torso não encontrado!") return end
+
+        if getgenv().ChildFollowLoop then
+            getgenv().ChildFollowLoop:Disconnect()
+        end
+
+        getgenv().ChildFollowLoop = game:GetService("RunService").Heartbeat:Connect(function()
+            if not (targetChar and targetChar:FindFirstChild("HumanoidRootPart") and torso) then
+                getgenv().ChildFollowLoop:Disconnect()
+                return
+            end
+
+            local backPos = hrp.Position - hrp.CFrame.LookVector * 0.1
+            local pos1 = backPos - hrp.CFrame.LookVector * 2.8
+            local pos2 = backPos - hrp.CFrame.LookVector * -0.2
+
+            local t = tick() % 1
+            local progress = math.abs(math.sin(t * math.pi))
+            local newPos = pos1:Lerp(pos2, progress)
+
+            torso.BodyPosition.Position = newPos
+            torso.BodyGyro.CFrame = CFrame.lookAt(torso.Position, hrp.Position)
+        end)
+    end
+})
 
 
 ---------------------------------------------------------------------------------------------------------------------------------
-                                          -- === Tab 8: Troll Musica === --
+                                          -- === Tab 9 Troll Musica === --
 ---------------------------------------------------------------------------------------------------------------------------------
-local Tab8 = Window:MakeTab({"Musicas", "music"})
+local Tab9 = Window:MakeTab({"Musicas", "music"})
 
 local function tocarMusica(id)
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -4545,7 +5103,7 @@ local function isValidMusicId(value)
     return value and value ~= "" and value ~= "Option 1" and not value:match("novas musica adds") and not value:match("musica brasil") and not value:match("musica do meu interece") and not value:match("musica dls por elas") and not value:match("meme abaixo") and not value:match("estourada")
 end
 
-Tab8:AddTextBox({
+Tab9:AddTextBox({
     Name = "ID da musica",
     PlaceholderText = "Digite o ID",
     Callback = function(value)
@@ -4555,7 +5113,7 @@ Tab8:AddTextBox({
     end
 })
 
--- Dropdowns para Tab8
+-- Dropdowns para Tab9
 local function createMusicDropdown(title, musicOptions, defaultOption)
     local musicNames = {}
     local categoryMap = {}
@@ -4572,7 +5130,7 @@ local function createMusicDropdown(title, musicOptions, defaultOption)
         tocarMusica(tostring(soundId)) -- Usa a funÃ§Ã£o tocarMusica para tocar em todos os contextos
     end
 
-    Tab8:AddDropdown({
+    Tab9:AddDropdown({
         Name = title,
         Description = "all",
         Default = defaultOption,
@@ -4756,431 +5314,11 @@ createMusicDropdown("Phonk", {
     }
 }, "Option 1")
 
-Tab8:AddButton({
+Tab9:AddButton({
     Name = "Stop",
     Description = "ALL music",
     Callback = function()
         tocarMusica("")
     end
 })
-
----------------------------------------------------------------------------------------------------------------------------------
-                                          -- === Tab9 Carros=== --
----------------------------------------------------------------------------------------------------------------------------------
-
-local Tab9= Window:MakeTab({ "| Carros", "car" })
-
-local carSpeed = 25
-local turboValue = "25"
-
-Tab9:AddTextBox({
-    Name = "Velocidade do carro",
-    Description = "Digite a Velocidade",
-    PlaceholderText = "Digite o valor da Velocidade...",
-    Callback = function(Value)
-		carSpeed = tonumber(Value) or carSpeed
-    end
-})
-
-Tab9:AddTextBox({
-    Name = "Definir Turbo",
-    Description = "Defina o Turbo",
-    PlaceholderText = "Digite o valor do Turbo...",
-    Callback = function(Value)
-        turboValue = tostring(Value)
-    end
-})
-
-Tab9:AddButton({
-	Name = "Mudar Velocidade e Turbo",
-	Callback = function()
-			local vehicles = workspace:FindFirstChild("Vehicles")
-		local car = vehicles and vehicles:FindFirstChild(LocalPlayer.Name .. "Car")
-		local seatsFolder = car and car:FindFirstChild("Seats")
-		local seatInSeats = seatsFolder and seatsFolder:FindFirstChild("VehicleSeat")
-		if seatInSeats then
-			local maxSpeed = seatInSeats:FindFirstChild("MaxSpeed")
-			if maxSpeed and maxSpeed:IsA("NumberValue") then
-				maxSpeed.Value = carSpeed
-			end
-
-			local turbo = seatInSeats:FindFirstChild("Turbo")
-			if turbo and turbo:IsA("StringValue") then
-				turbo.Value = turboValue
-			end
-		end
-
-		local bodyFolder = car and car:FindFirstChild("Body")
-		local seatInBody = bodyFolder and bodyFolder:FindFirstChild("VehicleSeat")
-		if seatInBody then
-			local topSpeed = seatInBody:FindFirstChild("TopSpeed")
-			if topSpeed and topSpeed:IsA("NumberValue") then
-				topSpeed.Value = carSpeed
-			end
-
-			local turbo = seatInBody:FindFirstChild("Turbo")
-			if turbo and turbo:IsA("StringValue") then
-				turbo.Value = turboValue
-			end
-		end
-        
-	end
-})
-
-Tab9:AddSection({ "Seleciona o Carrosl" })
-
-local function updateVehicleList()
-    local novaTabela = {}
-    for _, v in pairs(game.Workspace.Vehicles:GetChildren()) do
-        table.insert(novaTabela, v.Name)
-    end
-    return novaTabela
-end
-
-local selectedVehicle = nil
-
-local CarrosTT = Tab9:AddDropdown({
-    Name = "Selecionar Carro",
-    Options = updateVehicleList(),
-    Default = nil,
-    Callback = function(Value)
-        selectedVehicle = Value
-    end
-})
-
-Tab9:AddButton({
-    Name = "Atualiza Lista",
-    Callback = function()
-        CarrosTT:Set(updateVehicleList())
-    end
-})
-
-Tab9:AddToggle({
-    Name = "Ver Camera do Carro Selecionado",
-    Description = "Foca a camera no carro selecionado",
-    Default = false,
-    Callback = function(state)
-        local camera = workspace.CurrentCamera
-
-        if state then
-            if not selectedVehicle or selectedVehicle == "" then
-                warn("Nenhum carro selecionado!")
-                return
-            end
-
-            local vehiclesFolder = workspace:FindFirstChild("Vehicles")
-            if not vehiclesFolder then
-                warn("Pasta Vehicles não encontrada!")
-                return
-            end
-
-            local vehicle = vehiclesFolder:FindFirstChild(selectedVehicle)
-            if not vehicle then
-                warn("Carro não encontrado!")
-                return
-            end
-
-            local vehicleSeat = vehicle:FindFirstChildWhichIsA("VehicleSeat", true)
-            if not vehicleSeat then
-                warn("VehicleSeat não encontrado!")
-                return
-            end
-
-            -- Salva estado original
-            _G.OriginalCameraSubject = camera.CameraSubject
-            _G.OriginalCameraType = camera.CameraType
-
-            -- Ajusta câmera
-            camera.CameraSubject = vehicleSeat
-            camera.CameraType = Enum.CameraType.Follow
-
-        else
-            -- Restaura câmera
-            if _G.OriginalCameraSubject then
-                camera.CameraSubject = _G.OriginalCameraSubject
-                camera.CameraType = _G.OriginalCameraType or Enum.CameraType.Custom
-
-                _G.OriginalCameraSubject = nil
-                _G.OriginalCameraType = nil
-            end
-        end
-    end
-})
-
-Tab9:AddButton({
-    Name = "Teleporta ao asento",
-    Callback = function()
-        local pl = game.Players.LocalPlayer
-        local character = pl.Character or pl.CharacterAdded:Wait()
-        local root = character:WaitForChild("HumanoidRootPart")
-
-        if selectedVehicle then
-            local vehicle = workspace.Vehicles:FindFirstChild(selectedVehicle)
-            if vehicle and vehicle:FindFirstChild("Body") then
-                local body = vehicle.Body
-                local destino = nil
-                if body:FindFirstChild("VehicleSeat") then
-                    destino = body.VehicleSeat
-                elseif body:FindFirstChild("CarSeatPosition") then
-                    destino = body.CarSeatPosition
-                elseif body:FindFirstChild("Passenger") then
-                    destino = body.Passenger
-                end
-                if destino and destino:IsA("BasePart") then
-                    root.CFrame = destino.CFrame + Vector3.new(0, 3, 0)
-                end
-            end
-        end
-    end
-})
-
-Tab9:AddToggle({
-    Name = "Puxar Carro",
-    Default = false,
-    Callback = function(Value)
-      	if not Value then return end
-
-		local player = game.Players.LocalPlayer
-		local char = player.Character or player.CharacterAdded:Wait()
-		local hrp = char:FindFirstChild("HumanoidRootPart")
-		if not hrp then return end
-
-		if selectedVehicle then
-			local vehicle = workspace.Vehicles:FindFirstChild(selectedVehicle)
-			if vehicle and vehicle:FindFirstChild("Body") then
-				local body = vehicle.Body
-				local seat = body:FindFirstChild("CarSeatPosition") or body:FindFirstChild("VehicleSeat") or body:FindFirstChild("Passenger")
-
-				if seat and seat:IsA("BasePart") then
-					local originalPosition = hrp.CFrame
-					hrp.CFrame = seat.CFrame
-					wait(0.8)
-
-					if vehicle.PrimaryPart then
-						vehicle:SetPrimaryPartCFrame(originalPosition)
-					elseif seat then
-						vehicle:MoveTo(originalPosition.Position)
-					end
-
-					hrp.CFrame = originalPosition
-				end
-			end
-		end
-    end
-})
-
-local function teleportAllCars()
-    for _, vehicle in ipairs(game.Workspace.Vehicles:GetChildren()) do
-        for _, part in ipairs(vehicle:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
-                part.Massless = true
-            end
-        end
-    end
-    
-    wait(0.3)
-
-    for _, vehicle in ipairs(game.Workspace.Vehicles:GetChildren()) do
-        local playerPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame
-        vehicle:SetPrimaryPartCFrame(playerPosition)
-        for _, part in ipairs(vehicle:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = true
-                part.Massless = false
-            end
-        end
-    end
-end
-
-Tab9:AddSection({ "Todos os Carros" })
-
-Tab9:AddButton({
-    Name = "Puxar Carros",
-    Callback = function()
-        teleportAllCars()
-    end
-})
-
-Tab9:AddButton({
-    Name = "Remover Carros",
-    Callback = function()
-        local ofnawufn = false
-
-if ofnawufn == true then
-    return
-end
-ofnawufn = true
-
-local cawwfer = "MilitaryBoatFree" 
-local oldcfffff = game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame
-game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(1754, -2, 58) 
-wait(0.3)
-
-local args = {
-    [1] = "PickingBoat",
-    [2] = cawwfer
-}
-
-game:GetService("ReplicatedStorage").RE:FindFirstChild("1Ca1r"):FireServer(unpack(args))
-wait(1)
-
-local wrinfjn
-for _, errb in pairs(game.workspace.Vehicles[game.Players.LocalPlayer.Name.."Car"]:GetDescendants()) do
-    if errb:IsA("VehicleSeat") then
-        wrinfjn = errb
-    end
-end
-
-repeat
-    if game.Players.LocalPlayer.Character.Humanoid.Health == 0 then return end
-    if game.Players.LocalPlayer.Character.Humanoid.Sit == true then
-        if not game.Players.LocalPlayer.Character.Humanoid.SeatPart == wrinfjn then
-            game.Players.LocalPlayer.Character.Humanoid.Sit = false
-        end
-    end
-    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = wrinfjn.CFrame
-    task.wait()
-    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = wrinfjn.CFrame + Vector3.new(0,1,0)
-    task.wait()
-    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = wrinfjn.CFrame + Vector3.new(0,-1,0)
-    task.wait()
-until game.Players.LocalPlayer.Character.Humanoid.SeatPart == wrinfjn
-
-for _, wifn in pairs(game.workspace.Vehicles[game.Players.LocalPlayer.Name.."Car"]:GetDescendants()) do
-    if wifn.Name == "PhysicalWheel" then
-        wifn:Destroy()
-    end
-end
-
-local FLINGED = Instance.new("BodyThrust", game.workspace.Vehicles[game.Players.LocalPlayer.Name.."Car"].Chassis.Mass) 
-FLINGED.Force = Vector3.new(50000, 0, 50000) 
-FLINGED.Name = "SUNTERIUM HUB FLING"
-FLINGED.Location = game.workspace.Vehicles[game.Players.LocalPlayer.Name.."Car"].Chassis.Mass.Position
-
-for _, wvwvwasc in pairs(game.workspace.Vehicles:GetChildren()) do
-    for _, ascegr in pairs(wvwvwasc:GetDescendants()) do
-        if ascegr.Name == "VehicleSeat" then
-            local targetcar = ascegr
-            local tet = Instance.new("BodyVelocity", game.workspace.Vehicles[game.Players.LocalPlayer.Name.."Car"].Chassis.Mass)
-            tet.MaxForce = Vector3.new(math.huge,math.huge,math.huge)
-            tet.P = 1250
-            tet.Velocity = Vector3.new(0,0,0)
-            tet.Name = "#mOVOOEPF$#@F$#GERE..>V<<<<EW<V<<W"
-            for m=1,25 do
-                local pos = {x=0, y=0, z=0}
-                pos.x = targetcar.Position.X
-                pos.y = targetcar.Position.Y
-                pos.z = targetcar.Position.Z
-                pos.x = pos.x + targetcar.Velocity.X / 2
-                pos.y = pos.y + targetcar.Velocity.Y / 2
-                pos.z = pos.z + targetcar.Velocity.Z / 2
-                if pos.y <= -200 then
-                    game.workspace.Vehicles[game.Players.LocalPlayer.Name.."Car"].Chassis.Mass.CFrame = CFrame.new(0,1000,0)
-                else
-                    game.workspace.Vehicles[game.Players.LocalPlayer.Name.."Car"].Chassis.Mass.CFrame = CFrame.new(Vector3.new(pos.x,pos.y,pos.z))
-                    task.wait()
-                    game.workspace.Vehicles[game.Players.LocalPlayer.Name.."Car"].Chassis.Mass.CFrame = CFrame.new(Vector3.new(pos.x,pos.y,pos.z)) + Vector3.new(0,-2,0)
-                    task.wait()
-                    game.workspace.Vehicles[game.Players.LocalPlayer.Name.."Car"].Chassis.Mass.CFrame = CFrame.new(Vector3.new(pos.x,pos.y,pos.z)) * CFrame.new(0,0,2)
-                    task.wait()
-                    game.workspace.Vehicles[
-game.Players.LocalPlayer.Name.."Car"].Chassis.Mass.CFrame = CFrame.new(Vector3.new(pos.x,pos.y,pos.z)) * CFrame.new(2,0,0)
-                    task.wait()
-                end
-                task.wait()
-            end
-        end
-    end
-end
-
-task.wait()
-local args = {
-    [1] = "DeleteAllVehicles"
-}
-
-game:GetService("ReplicatedStorage").RE:FindFirstChild("1Ca1r"):FireServer(unpack(args))
-game.Players.LocalPlayer.Character.Humanoid.Sit = false
-wait()
-local tet = Instance.new("BodyVelocity", game.Players.LocalPlayer.Character.HumanoidRootPart)
-tet.MaxForce = Vector3.new(math.huge,math.huge,math.huge)
-tet.P = 1250
-tet.Velocity = Vector3.new(0,0,0)
-tet.Name = "#mOVOOEPF$#@F$#GERE..>V<<<<EW<V<<W"
-wait(0.1)
-for m=1,2 do 
-    task.wait()
-    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = oldcfffff
-end
-wait(1)
-game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = oldcfffff
-wait()
-game.Players.LocalPlayer.Character.HumanoidRootPart:FindFirstChild("#mOVOOEPF$#@F$#GERE..>V<<<<EW<V<<W"):Destroy()
-wait(0.2)
-ofnawufn = false
-    end
-})
-
-Tab9:AddSection({ "ESP Carros" })
-
-local ESPEnabled = false
-local espConnections = {}
-
-local function createESP(vehicle)
-    local billboard = Instance.new("BillboardGui")
-    billboard.Name = "ESP"
-    billboard.Adornee = vehicle
-    billboard.Size = UDim2.new(0, 150, 0, 30)
-    billboard.StudsOffset = Vector3.new(0, 3, 0)
-    billboard.AlwaysOnTop = true
-
-    local textLabel = Instance.new("TextLabel")
-    textLabel.Size = UDim2.new(1, 0, 1, 0)
-    textLabel.BackgroundTransparency = 1
-    textLabel.TextColor3 = Color3.new(0, 1, 0)
-    textLabel.TextScaled = true
-    textLabel.Font = Enum.Font.SourceSansBold
-    textLabel.Parent = billboard
-
-    billboard.Parent = vehicle
-    return textLabel
-end
-
-local function toggleESP(state)
-    ESPEnabled = state
-    if ESPEnabled then
-        for _, vehicle in pairs(workspace.Vehicles:GetChildren()) do
-            if not vehicle:FindFirstChild("ESP") and vehicle:IsA("Model") and vehicle.PrimaryPart then
-                local textLabel = createESP(vehicle)
-                local connection = game:GetService("RunService").RenderStepped:Connect(function()
-                    if ESPEnabled and vehicle and vehicle.PrimaryPart then
-                        local player = game.Players.LocalPlayer
-                        local distance = (player.Character.PrimaryPart.Position - vehicle.PrimaryPart.Position).Magnitude
-                        textLabel.Text = vehicle.Name .. " | Distância: " .. math.floor(distance) .. " studs"
-                    end
-                end)
-                table.insert(espConnections, connection)
-            end
-        end
-    else
-        for _, connection in pairs(espConnections) do
-            connection:Disconnect()
-        end
-        espConnections = {}
-        for _, vehicle in pairs(workspace.Vehicles:GetChildren()) do
-            if vehicle:FindFirstChild("ESP") then
-                vehicle.ESP:Destroy()
-            end
-        end
-    end
-end
-
-local Toggle = Tab9:AddToggle({
-    Name = "ESP Carros",
-    Default = false,
-    Callback = function(Value)
-        toggleESP(Value)
-    end
-})
-
 
