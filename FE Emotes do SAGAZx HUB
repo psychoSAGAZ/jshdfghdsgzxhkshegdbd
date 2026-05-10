@@ -1,0 +1,682 @@
+local CoreGui = game:GetService("CoreGui")
+
+if CoreGui:FindFirstChild("EmotesGUI") then
+CoreGui.EmotesGUI:Destroy()
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "EmotesGUI"
+ScreenGui.Parent = CoreGui
+ScreenGui.ResetOnSpawn = false
+
+
+
+local FirstOpen = true
+
+-- OPEN BUTTON
+
+local Open = Instance.new("TextButton")
+Open.Parent = ScreenGui
+Open.Position = UDim2.fromScale(0.10,0.14)
+Open.Size = UDim2.fromOffset(60,60)
+Open.Text = "Close"
+Open.TextScaled = true
+Open.BackgroundColor3 = Color3.fromRGB(0,0,0)
+Open.BackgroundTransparency = .4
+Open.TextColor3 = Color3.new(1,1,1)
+Open.AutoButtonColor = false
+Open.Draggable = true
+
+Instance.new("UICorner",Open).CornerRadius = UDim.new(1,0)
+
+
+---
+
+-- TOP BAR
+
+local TopBar = Instance.new("Frame")
+TopBar.Parent = ScreenGui
+TopBar.Position = UDim2.fromScale(0.25,0.08)
+TopBar.Size = UDim2.fromScale(0.5,0.07)
+TopBar.BackgroundTransparency = 1
+TopBar.Visible = true
+
+local Layout = Instance.new("UIListLayout")
+Layout.Parent = TopBar
+Layout.FillDirection = Enum.FillDirection.Horizontal
+Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+Layout.Padding = UDim.new(0,15)
+
+
+---
+
+-- KILL GUI
+
+local Kill = Instance.new("TextButton")
+Kill.Parent = TopBar
+Kill.Size = UDim2.fromOffset(120,40)
+Kill.Text = "Fechar GUI"
+Kill.TextScaled = true
+Kill.BackgroundColor3 = Color3.fromRGB(120,0,0)
+Kill.BackgroundTransparency = .3
+Kill.TextColor3 = Color3.new(1,1,1)
+
+Instance.new("UICorner",Kill)
+
+Kill.MouseButton1Click:Connect(function()
+ScreenGui:Destroy()
+end)
+
+
+---
+
+-- SEARCH
+
+local SearchBar = Instance.new("TextBox")
+SearchBar.Parent = TopBar
+SearchBar.Size = UDim2.fromOffset(300,40)
+SearchBar.PlaceholderText = "Pesquisar..."
+SearchBar.TextScaled = true
+SearchBar.BackgroundColor3 = Color3.fromRGB(0,0,0)
+SearchBar.BackgroundTransparency = .4
+SearchBar.TextColor3 = Color3.new(1,1,1)
+
+Instance.new("UICorner",SearchBar)
+
+
+
+---
+
+--------------------------------------------------
+-- MOVIMENTO BUTTON
+--------------------------------------------------
+
+local Movimento = Instance.new("TextButton")
+Movimento.Parent = TopBar
+Movimento.Size = UDim2.fromOffset(150,40)
+Movimento.TextScaled = true
+Movimento.BackgroundColor3 = Color3.fromRGB(0,0,0)
+Movimento.BackgroundTransparency = .4
+Movimento.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner",Movimento)
+
+local MovimentoAtivo = false
+
+local function UpdateMovimentoUI()
+	Movimento.Text = MovimentoAtivo and "Movimento: ON" or "Movimento: OFF"
+end
+
+UpdateMovimentoUI()
+
+Movimento.MouseButton1Click:Connect(function()
+	MovimentoAtivo = not MovimentoAtivo
+	UpdateMovimentoUI()
+end)
+
+---
+
+
+
+-- LABEL
+
+local EmoteName = Instance.new("TextLabel")
+EmoteName.Parent = ScreenGui
+EmoteName.Position = UDim2.fromScale(0.2,0.5)
+EmoteName.Size = UDim2.fromOffset(60,60)
+EmoteName.Text = "Nome dos Emotes"
+EmoteName.TextScaled = true
+EmoteName.BackgroundColor3 = Color3.fromRGB(0,0,0)
+EmoteName.BackgroundTransparency = .4
+EmoteName.TextColor3 = Color3.new(1,1,1)
+EmoteName.Visible = true
+
+Instance.new("UICorner",EmoteName)
+
+
+---
+
+-- SCROLL FRAME
+
+local Frame = Instance.new("ScrollingFrame")
+Frame.Parent = ScreenGui
+Frame.Position = UDim2.fromScale(0.25,0.18)
+Frame.Size = UDim2.fromScale(0.5,0.7)
+Frame.BackgroundTransparency = 1
+Frame.Visible = true
+Frame.ScrollBarThickness = 6
+Frame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+
+-- HINT TEXT (centro do scroll)
+local HintText = Instance.new("TextLabel")
+HintText.Parent = Frame
+HintText.Size = UDim2.fromScale(1,1)
+HintText.BackgroundTransparency = 1
+HintText.Text = "Click na TextBox"
+HintText.TextScaled = true
+HintText.TextColor3 = Color3.new(1,1,1)
+HintText.Font = Enum.Font.GothamBold
+HintText.ZIndex = 50
+HintText.Visible = true
+
+local hidden = false
+
+local function HideHint()
+	if not hidden then
+		hidden = true
+		HintText.Visible = false
+	end
+end
+
+local function HideHint()
+	if HintText then
+		HintText.Visible = false
+	end
+end
+
+local function ShowHint()
+	if HintText and SearchBar.Text == "" then
+		HintText.Visible = true
+	end
+end
+
+-- quando clica na textbox
+SearchBar.Focused:Connect(function()
+	HideHint()
+end)
+
+-- quando sai da textbox
+
+
+-- se começar a digitar
+SearchBar:GetPropertyChangedSignal("Text"):Connect(function()
+	if SearchBar.Text ~= "" then
+		HideHint()
+	else
+		ShowHint()
+	end
+end)
+
+
+-- ⭐ FIX SCROLL HORIZONTAL
+Frame.ScrollingDirection = Enum.ScrollingDirection.Y
+Frame.HorizontalScrollBarInset = Enum.ScrollBarInset.None
+Frame.CanvasSize = UDim2.new(0,0,0,0)
+
+local Grid = Instance.new("UIGridLayout")
+Grid.Parent = Frame
+Grid.CellSize = UDim2.fromOffset(90,90)
+Grid.CellPadding = UDim2.fromOffset(8,8)
+Grid.SortOrder = Enum.SortOrder.LayoutOrder
+
+--------------------------------------------------
+-- FIX GRID REFRESH
+--------------------------------------------------
+
+local function RefreshLayout()
+
+	Grid:ApplyLayout()
+
+	task.wait()
+
+	Frame.CanvasSize =
+		UDim2.new(0,0,0,Grid.AbsoluteContentSize.Y + 10)
+
+end
+
+-- ⭐ TRAVAR MOVIMENTO LATERAL
+Frame:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
+	if Frame.CanvasPosition.X ~= 0 then
+		Frame.CanvasPosition = Vector2.new(0, Frame.CanvasPosition.Y)
+	end
+end)
+
+---
+
+-- OPEN / CLOSE (FIX FINAL)
+
+Open.MouseButton1Click:Connect(function()
+
+	local state = not Frame.Visible
+
+	Frame.Visible = state
+	TopBar.Visible = state
+	EmoteName.Visible = state
+
+
+	Open.Text = state and "Close" or "Open"
+
+	-- ⭐ CARREGAR SÓ NA PRIMEIRA ABERTURA
+	if state and FirstOpen then
+		FirstOpen = false
+
+		task.delay(0.15,function()
+			LoadMore()
+			ReorderEmotes()
+			UpdateSearch()
+		end)
+	end
+
+end)
+
+
+
+-- ⭐ segurança extra
+Frame:GetPropertyChangedSignal("Visible"):Connect(function()
+if not Frame.Visible then
+
+end
+end)
+
+
+---
+
+--------------------------------------------------
+-- FAVORITES SAVE SYSTEM
+--------------------------------------------------
+
+local HttpService = game:GetService("HttpService")
+
+local FAVORITE_FILE = "EmoteFavorites.json"
+
+local Favorites = {}
+
+-- criar arquivo se não existir
+if writefile and not isfile(FAVORITE_FILE) then
+	writefile(FAVORITE_FILE,"{}")
+end
+
+-- carregar
+if readfile and isfile(FAVORITE_FILE) then
+	local success,data = pcall(function()
+		return HttpService:JSONDecode(readfile(FAVORITE_FILE))
+	end)
+
+	if success and type(data) == "table" then
+		Favorites = data
+	end
+end
+
+local function SaveFavorites()
+	if writefile then
+		writefile(
+			FAVORITE_FILE,
+			HttpService:JSONEncode(Favorites)
+		)
+	end
+end
+
+-- FAVORITOS
+
+
+
+local function ReorderEmotes()
+
+	local favOrder = 0
+	local normalOrder = 10000
+
+	for _,obj in ipairs(Frame:GetChildren()) do
+		if obj:IsA("ImageButton") then
+
+			if Favorites[obj.Name] then
+				favOrder += 1
+				obj.LayoutOrder = favOrder
+			else
+				normalOrder += 1
+				obj.LayoutOrder = normalOrder
+			end
+
+		end
+	end
+
+	
+
+end
+
+	
+
+---
+
+-- EMOTES PLACEHOLDER
+
+
+---
+
+-- CATALOGO REAL DE EMOTES
+
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+
+local Player = Players.LocalPlayer
+
+local cursor = ""
+local loading = false
+
+
+---
+
+-- PLAY EMOTE
+
+CurrentTrack = track
+lastPosition = nil
+
+local CurrentTrack
+
+local CurrentTrack
+local lastPosition = nil
+
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+local function StopEmote()
+if CurrentTrack then
+CurrentTrack:Stop(0.15)
+CurrentTrack = nil
+end
+end
+
+--------------------------------------------------
+-- MOVIMENTO TOGGLE
+--------------------------------------------------
+
+-- começa ligado
+
+RunService.Heartbeat:Connect(function()
+	local char = player.Character
+	if not char then return end
+
+	local hum = char:FindFirstChildOfClass("Humanoid")
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if not hum or not hrp then return end
+
+	if not lastPosition then
+		lastPosition = hrp.Position
+		return
+	end
+
+	local moved = (hrp.Position - lastPosition).Magnitude
+
+	-- só conta como movimento real se estiver andando MESMO
+	local isMoving = hum.MoveDirection.Magnitude > 0.1
+	local isJumping = hum:GetState() == Enum.HumanoidStateType.Jumping
+
+	-- 🔥 lógica correta
+if not CurrentTrack then return end
+
+-- OFF = quebra ao mover
+if not MovimentoAtivo then
+	if isMoving or isJumping then
+		StopEmote()
+	end
+end
+
+	lastPosition = hrp.Position
+end)
+
+
+local function PlayEmote(assetId)
+
+local player = game.Players.LocalPlayer  
+local char = player.Character or player.CharacterAdded:Wait()  
+local hum = char:WaitForChild("Humanoid")  
+
+-- parar emote anterior  
+if CurrentTrack then  
+	CurrentTrack:Stop()  
+end  
+
+local animationId  
+
+-- ⭐ SEGREDO DO GAZE  
+local success,objects = pcall(function()  
+	return game:GetObjects("rbxassetid://"..tostring(assetId))  
+end)  
+
+if success and objects and #objects > 0 then  
+	local obj = objects[1]  
+
+	if obj:IsA("Animation") then  
+		animationId = obj.AnimationId  
+	elseif obj:FindFirstChildOfClass("Animation") then  
+		animationId = obj:FindFirstChildOfClass("Animation").AnimationId  
+	else  
+		animationId = "rbxassetid://"..assetId  
+	end  
+else  
+	animationId = "rbxassetid://"..assetId  
+end  
+
+local anim = Instance.new("Animation")  
+anim.AnimationId = animationId  
+
+local track = hum:LoadAnimation(anim)  
+
+track.Priority = Enum.AnimationPriority.Action
+track.Looped = true  
+track:Play(0.1,1,1)  
+
+CurrentTrack = track
+
+end
+
+local LoadedEmotes = {}
+
+--------------------------------------------------
+-- SEARCH SYSTEM
+--------------------------------------------------
+
+local function UpdateSearch()
+
+
+
+	local text = string.lower(SearchBar.Text)
+
+	for _,obj in ipairs(Frame:GetChildren()) do
+		if obj:IsA("ImageButton") then
+
+			local name = string.lower(obj:GetAttribute("EmoteName") or "")
+			local id = obj.Name
+
+			-- vazio = mostrar tudo
+			if text == "" then
+				obj.Visible = true
+
+			-- pesquisar por ID
+			elseif string.find(id, text) then
+				obj.Visible = true
+
+			-- pesquisar por nome
+			elseif string.find(name, text) then
+				obj.Visible = true
+			else
+				obj.Visible = false
+			end
+		end
+	end
+end
+
+SearchBar:GetPropertyChangedSignal("Text"):Connect(UpdateSearch)
+
+-- CRIAR BOTÃO
+
+local function CreateEmote(asset)
+
+-- ANTI DUPLICADO ⭐  
+if LoadedEmotes[asset.id] then  
+	return  
+end  
+
+LoadedEmotes[asset.id] = true  
+
+local Emote = Instance.new("ImageButton")  
+Emote.Parent = Frame  
+Emote.Size = UDim2.fromOffset(90,90)  
+Emote.BackgroundColor3 = Color3.new(0,0,0)  
+Emote.BackgroundTransparency = .5  
+Emote.Name = tostring(asset.id) 
+Emote:SetAttribute("EmoteName",asset.name)
+Emote.Image =  
+	"rbxthumb://type=Asset&id="..  
+	asset.id.."&w=150&h=150"  
+
+Instance.new("UICorner",Emote)  
+
+-- FAVORITO  
+local Star = Instance.new("TextButton")  
+Star.Parent = Emote  
+Star.Size = UDim2.new(0,22,0,22)  
+Star.Position = UDim2.new(1,-24,0,2)  
+Star.BackgroundTransparency = 1  
+Star.Text = Favorites[Emote.Name] and "★" or "☆"
+Star.TextScaled = true  
+Star.TextColor3 = Color3.fromRGB(255,220,0)  
+
+Star.MouseButton1Click:Connect(function()
+
+	if Favorites[Emote.Name] then
+		Favorites[Emote.Name] = nil
+	else
+		Favorites[Emote.Name] = true
+	end
+
+	Star.Text = Favorites[Emote.Name] and "★" or "☆"
+
+	SaveFavorites()
+	ReorderEmotes()
+
+end)
+
+-- NOME  
+Emote.MouseEnter:Connect(function()  
+	EmoteName.Text = asset.name  
+end)  
+
+-- PLAY  
+Emote.MouseButton1Click:Connect(function()  
+	PlayEmote(asset.id)  
+end)
+
+ReorderEmotes()
+UpdateSearch()
+RefreshLayout()
+
+end
+
+
+---
+
+
+--------------------------------------------------
+-- LOAD CATALOGO REAL (MULTI SEARCH)
+--------------------------------------------------
+
+local SortTypes = {
+	0, -- Relevance
+	3, -- Updated
+	4, -- Created
+}
+
+local sortIndex = 1
+
+local function LoadMore()
+
+	if loading then return end
+	if not SortTypes[sortIndex] then return end
+
+	loading = true
+
+	local url =
+	"https://catalog.roblox.com/v1/search/items/details?Category=12&Subcategory=39&Limit=30&SortType="
+	..SortTypes[sortIndex]
+	.."&Cursor="..cursor
+
+	local success,response = pcall(function()
+		return game:HttpGet(url)
+	end)
+
+	if success and response then
+
+		local data = HttpService:JSONDecode(response)
+
+		if data and data.data then
+
+			for _,emote in ipairs(data.data) do
+				CreateEmote(emote)
+			end
+
+			-- ⭐ FORÇA ATUALIZAÇÃO DO GRID
+			task.defer(function()
+				RefreshLayout()
+				UpdateSearch()
+				ReorderEmotes()
+			end)
+
+			if data.nextPageCursor then
+				cursor = data.nextPageCursor
+			else
+				sortIndex += 1
+				cursor = ""
+			end
+		end
+	end
+
+	loading = false
+end
+
+task.spawn(function()
+
+	while SortTypes[sortIndex] do
+		LoadMore()
+		task.wait(0.15)
+	end
+
+end)
+
+	--------------------------------------------------
+-- AUTO LOAD INICIAL ⭐
+--------------------------------------------------
+
+local function InitialLoad()
+
+	task.spawn(function()
+
+		repeat task.wait() until Frame
+
+		local pages = 0
+
+		while pages < 200 do -- quantidade inicial
+
+			LoadMore()
+
+			pages += 1
+
+			task.wait(0.2)
+
+		end
+
+	end)
+
+end
+
+---
+
+-- SCROLL INFINITO
+
+Frame:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
+
+local bottom =  
+	Frame.CanvasPosition.Y +  
+	Frame.AbsoluteWindowSize.Y  
+
+if bottom >= Frame.CanvasSize.Y.Offset - 200 then  
+	LoadMore()  
+end
+
+end)
+
+
+InitialLoad()
+task.wait()
+RefreshLayout()
+ReorderEmotes()
+UpdateSearch()
